@@ -47,9 +47,11 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 
 	if (message.text.indexOf(RELEASE_PATTERN) !== -1) {
 		var channel = message.channel;
-		//@TODO
-  		//releaseSanbox for channel
-		rtm.sendMessage('%run the release command%', message.channel)
+		releaseSandbox(message)
+  		.then(function() {
+  			var msg = '<@' + message.user + '> :+1:'
+  			rtm.sendMessage(msg, message.channel)
+  		})
 	}
 });
 
@@ -115,4 +117,16 @@ function parseSandboxStatus(key, value) {
 	} else {
 		return [key, 'free'];
 	}
+}
+
+function releaseSandbox(message) {
+		return new Promise(function(resolve, reject) {
+		auth.then(function(authData) {
+			var sandboxName = getSandboxNameFromMessage(message);
+
+			return sheet.releaseSandbox(authData, sandboxName, message.user);
+		}).then(function(data) {
+			resolve(data)
+		});
+	});
 }
