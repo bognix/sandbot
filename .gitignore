@@ -1,3 +1,4 @@
 sandbot_setup.sh
 client_secret.json
 node_modules/
+.idea

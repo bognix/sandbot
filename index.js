@@ -1,99 +1,119 @@
-var RtmClient = require('@slack/client').RtmClient;
-var RTM_EVENTS = require('@slack/client').RTM_EVENTS;
-var RTM_CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS.RTM;
-var token = process.env.SANDBOT_TOKEN || '';
-var sheet = require('./sheets'),
-	Promise = require('bluebird');
+var RtmClient = require('@slack/client').RtmClient,
+	token = process.env.SANDBOT_TOKEN || '',
+	sheet = require('./sheets'),
+	Promise = require('bluebird'),
+	request = require('request'),
+	rtm = new RtmClient(token, {logLevel: 'error'}),
+	auth = sheet.authorize(),
 
-var request = require('request');
-
-var STATUS_PATTERN = 'sandbot status';
-var BOOK_PATTERN = 'biore sandbox-';
-var RELEASE_PATTERN = 'zwalniam sandbox-';
-
-var auth = sheet.authorize();
-var rtm = new RtmClient(token, {logLevel: 'error'});
+	RTM_EVENTS = require('@slack/client').RTM_EVENTS,
+	STATUS_PATTERN = 'sandbot status',
+	BOOK_PATTERN = 'biore sandbox-',
+	RELEASE_PATTERN = 'zwalniam sandbox-';
 
 rtm.start();
 
 rtm.on(RTM_EVENTS.MESSAGE, function (message) {
-  	if (message.text.indexOf(STATUS_PATTERN) !== -1) {
+	if (message.text && message.text.indexOf(STATUS_PATTERN) !== -1) {
 
-  		getStatus().then(function(data) {
-  			var promises = [];
+		getStatus().then(function (data) {
+			var promises = [];
 
-	  		Object.keys(data.result).forEach(function(key) {
-	  			promises.push(parseSandboxStatus(key, data.result[key]));
-	  		})
+			Object.keys(data.result).forEach(function (key) {
+				promises.push(parseSandboxStatus(key, data.result[key]));
+			});
 
-	  		Promise.all(promises).then(function(data) {
-	  			var parsedMsg = '```';
-	  			data.forEach(function(item) {
-	  				parsedMsg += item[0] + ': ' + item[1] + '\n';
-	  			})
-	  			rtm.sendMessage(parsedMsg + '```' , message.channel);
-	  		})
+			Promise.all(promises).then(function (data) {
+				var parsedMsg = '```';
+				data.forEach(function (item) {
+					parsedMsg += item[0] + ': ' + item[1] + '\n';
+				});
+				rtm.sendMessage(parsedMsg + '```', message.channel);
+			})
 		})
 	}
 
-	if (message.text.indexOf(BOOK_PATTERN) !== -1) {
+	if (message.text && message.text.indexOf(BOOK_PATTERN) !== -1) {
+		var sandboxName = getSandboxNameFromMessage(message),
+			msg = '<@' + message.user + '> ';
 
-		bookSandbox(message)
-  		.then(function() {
-  			var msg = '<@' + message.user + '> :+1:'
-  			rtm.sendMessage(msg, message.channel)
-  		})
+		getPreviousUser(sandboxName)
+			.then(function (previousUser) {
+				if (previousUser.result) {
+					msg += ':-1: - <@' + previousUser.result + '> is using it';
+					rtm.sendMessage(msg, message.channel)
+				} else {
+					bookSandbox(message)
+						.then(function () {
+							msg += ':+1:';
+							rtm.sendMessage(msg, message.channel)
+						})
+				}
+			});
 	}
 
-	if (message.text.indexOf(RELEASE_PATTERN) !== -1) {
-		var channel = message.channel;
+	if (message.text && message.text.indexOf(RELEASE_PATTERN) !== -1) {
 		releaseSandbox(message)
-  		.then(function() {
-  			var msg = '<@' + message.user + '> :+1:'
-  			rtm.sendMessage(msg, message.channel)
-  		})
+			.then(function () {
+				msg += ':+1:';
+				rtm.sendMessage(msg, message.channel)
+			})
 	}
 });
 
 function getStatus() {
-	return new Promise(function(resolve, reject) {
+	return new Promise(function (resolve, reject) {
 		auth
-			.then(function(authData) {
+			.then(function (authData) {
 				return sheet.getStatus(authData);
 			})
-			.then(function(data) {
+			.then(function (data) {
 				resolve(data)
 			});
 	});
 }
 
-function bookSandbox(message) {
-	return new Promise(function(resolve, reject) {
-		auth.then(function(authData) {
-			var sandboxName = getSandboxNameFromMessage(message);
+function getPreviousUser(sandboxName) {
+	return new Promise(function (resolve, reject) {
+		auth
+			.then(function (authData) {
+				return sheet.getCurrentUser(authData, sandboxName);
+			})
+			.then(function (data) {
+				resolve(data);
+			})
+	})
+}
 
-			return sheet.bookSandbox(authData, sandboxName, message.user);
-		}).then(function(data) {
-			resolve(data)
-		});
+function bookSandbox(message) {
+	var sandboxName = getSandboxNameFromMessage(message);
+
+	return new Promise(function (resolve, reject) {
+		auth
+			.then(function (authData) {
+				return sheet.bookSandbox(authData, sandboxName, message.user);
+			})
+			.then(function (data) {
+				resolve(data)
+			})
 	});
 }
 
 function getUserNameById(userId) {
-	return new Promise(function(resolve, reject) {
+	return new Promise(function (resolve, reject) {
 		request(
-		{
-			url: 'https://slack.com/api/users.info',
-			qs: {
-				token: token,
-				user: userId
-			}
-		}, function (error, response, body) {
-			if (!error && response.statusCode == 200) {
-				var json = JSON.parse(body);
-				resolve(json.user.name);
-			}
-		})
+			{
+				url: 'https://slack.com/api/users.info',
+				qs: {
+					token: token,
+					user: userId
+				}
+			}, function (error, response, body) {
+				if (!error && response.statusCode == 200) {
+					var json = JSON.parse(body);
+					resolve(json.user.name);
+				}
+			})
 	})
 }
 
@@ -101,18 +121,18 @@ function getSandboxNameFromMessage(message) {
 	var text = message.text,
 		match = text.match(/(sandbox-.*)/i);
 
-	if(match) {
+	if (match) {
 		return match[0].replace('-', '_');
 	}
 }
 
 function parseSandboxStatus(key, value) {
 	if (value) {
-		return new Promise(function(resolve, reject) {
+		return new Promise(function (resolve, reject) {
 			getUserNameById(value)
-			.then(function(userName) {
-				resolve([key, userName]);
-			});
+				.then(function (userName) {
+					resolve([key, userName]);
+				});
 		});
 	} else {
 		return [key, 'free'];
@@ -120,12 +140,12 @@ function parseSandboxStatus(key, value) {
 }
 
 function releaseSandbox(message) {
-		return new Promise(function(resolve, reject) {
-		auth.then(function(authData) {
+	return new Promise(function (resolve, reject) {
+		auth.then(function (authData) {
 			var sandboxName = getSandboxNameFromMessage(message);
 
 			return sheet.releaseSandbox(authData, sandboxName, message.user);
-		}).then(function(data) {
+		}).then(function (data) {
 			resolve(data)
 		});
 	});
