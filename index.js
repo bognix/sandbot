@@ -53,6 +53,8 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 	}
 
 	if (message.text && message.text.indexOf(RELEASE_PATTERN) !== -1) {
+		var msg = '<@' + message.user + '> ';
+
 		releaseSandbox(message)
 			.then(function () {
 				msg += ':+1:';
