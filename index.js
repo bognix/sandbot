@@ -7,14 +7,14 @@ var RtmClient = require('@slack/client').RtmClient,
 	auth = sheet.authorize(),
 
 	RTM_EVENTS = require('@slack/client').RTM_EVENTS,
-	STATUS_PATTERN = 'sandbot status',
-	BOOK_PATTERN = 'biore sandbox-',
-	RELEASE_PATTERN = 'zwalniam sandbox-';
+	STATUS_PATTERN = /^sandbot status$/i,
+	BOOK_PATTERN = /^biore sandbox-/i,
+	RELEASE_PATTERN = /^zwalniam sandbox-/i;
 
 rtm.start();
 
 rtm.on(RTM_EVENTS.MESSAGE, function (message) {
-	if (message.text && message.text.indexOf(STATUS_PATTERN) !== -1) {
+	if (message.text && STATUS_PATTERN.test(message.text)) {
 
 		getStatus().then(function (data) {
 			var promises = [];
@@ -33,7 +33,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 		})
 	}
 
-	if (message.text && message.text.indexOf(BOOK_PATTERN) !== -1) {
+	if (message.text && BOOK_PATTERN.test(message.text)) {
 		var sandboxName = getSandboxNameFromMessage(message),
 			msg = '<@' + message.user + '> ';
 
@@ -52,7 +52,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 			});
 	}
 
-	if (message.text && message.text.indexOf(RELEASE_PATTERN) !== -1) {
+	if (message.text && RELEASE_PATTERN.test(message.text)) {
 		var msg = '<@' + message.user + '> ';
 
 		releaseSandbox(message)
