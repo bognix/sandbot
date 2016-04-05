@@ -9,7 +9,8 @@ var RtmClient = require('@slack/client').RtmClient,
 	RTM_EVENTS = require('@slack/client').RTM_EVENTS,
 	STATUS_PATTERN = 'sandbot status',
 	BOOK_PATTERN = 'biore sandbox-',
-	RELEASE_PATTERN = 'zwalniam sandbox-';
+	RELEASE_PATTERN = 'zwalniam sandbox-',
+	PING_PATTERN = 'sandbot zyjesz?';
 
 rtm.start();
 
@@ -60,6 +61,10 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 				msg += ':+1:';
 				rtm.sendMessage(msg, message.channel)
 			})
+	}
+
+	if (message.text && message.text.indexOf(PING_PATTERN) !== -1) {
+		rtm.sendMessage('zyje :+1:', message.channel);
 	}
 });
 
