@@ -7,17 +7,17 @@ var RtmClient = require('@slack/client').RtmClient,
 	auth = sheet.authorize(),
 
 	RTM_EVENTS = require('@slack/client').RTM_EVENTS,
-	STATUS_PATTERN = 'sandbot status',
-	BOOK_PATTERN = 'biore sandbox-',
-	RELEASE_PATTERN = 'zwalniam sandbox-',
-	PING_PATTERN = 'sandbot zyjesz?';
+	STATUS_PATTERN = /sandbot status/i,
+	BOOK_PATTERN = /(biore|taking) sandbox-/i,
+	RELEASE_PATTERN = /(zwalniam|releasing) sandbox-/i,
+	PING_PATTERN = /sandbot (zyjesz|ping)\?/i;
 
 rtm.start();
 
 rtm.on(RTM_EVENTS.MESSAGE, function (message) {
-	if (message.text && message.text.indexOf(STATUS_PATTERN) !== -1) {
+	if (message.text && STATUS_PATTERN.test(message.text)) {
 
-		getStatus().then(function (data) {
+		getStatus(message.channel).then(function (data) {
 			var promises = [];
 
 			Object.keys(data.result).forEach(function (key) {
@@ -34,11 +34,11 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 		})
 	}
 
-	if (message.text && message.text.indexOf(BOOK_PATTERN) !== -1) {
+	if (message.text && BOOK_PATTERN.test(message.text)) {
 		var sandboxName = getSandboxNameFromMessage(message),
 			msg = '<@' + message.user + '> ';
 
-		getPreviousUser(sandboxName)
+		getPreviousUser(message.channel, sandboxName)
 			.then(function (previousUser) {
 				if (previousUser.result) {
 					msg += ':-1: - <@' + previousUser.result + '> is using it';
@@ -53,7 +53,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 			});
 	}
 
-	if (message.text && message.text.indexOf(RELEASE_PATTERN) !== -1) {
+	if (message.text && RELEASE_PATTERN.test(message.text)) {
 		var msg = '<@' + message.user + '> ';
 
 		releaseSandbox(message)
@@ -63,16 +63,16 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 			})
 	}
 
-	if (message.text && message.text.indexOf(PING_PATTERN) !== -1) {
+	if (message.text && PING_PATTERN.test(message.text)) {
 		rtm.sendMessage('zyje :+1:', message.channel);
 	}
 });
 
-function getStatus() {
+function getStatus(channel) {
 	return new Promise(function (resolve, reject) {
 		auth
 			.then(function (authData) {
-				return sheet.getStatus(authData);
+				return sheet.getStatus(authData, channel);
 			})
 			.then(function (data) {
 				resolve(data)
@@ -80,11 +80,11 @@ function getStatus() {
 	});
 }
 
-function getPreviousUser(sandboxName) {
+function getPreviousUser(channel, sandboxName) {
 	return new Promise(function (resolve, reject) {
 		auth
 			.then(function (authData) {
-				return sheet.getCurrentUser(authData, sandboxName);
+				return sheet.getCurrentUser(authData, channel, sandboxName);
 			})
 			.then(function (data) {
 				resolve(data);
@@ -98,7 +98,7 @@ function bookSandbox(message) {
 	return new Promise(function (resolve, reject) {
 		auth
 			.then(function (authData) {
-				return sheet.bookSandbox(authData, sandboxName, message.user);
+				return sheet.bookSandbox(authData, message.channel, sandboxName, message.user);
 			})
 			.then(function (data) {
 				resolve(data)
@@ -151,7 +151,7 @@ function releaseSandbox(message) {
 		auth.then(function (authData) {
 			var sandboxName = getSandboxNameFromMessage(message);
 
-			return sheet.releaseSandbox(authData, sandboxName, message.user);
+			return sheet.releaseSandbox(authData, message.channel, sandboxName, message.user);
 		}).then(function (data) {
 			resolve(data)
 		});

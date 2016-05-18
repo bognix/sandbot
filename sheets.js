@@ -90,20 +90,20 @@ function storeToken(token) {
 	console.log('Token stored to ' + TOKEN_PATH);
 }
 
-function getStatus(auth) {
-	return executeScript(auth, 'status');
+function getStatus(auth, channel) {
+	return executeScript(auth, 'status', [channel]);
 }
 
-function bookSandbox(auth, sandbox, user) {
-	return executeScript(auth, 'putUser', [sandbox, user]);
+function bookSandbox(auth, channel, sandbox, user) {
+	return executeScript(auth, 'putUser', [channel, sandbox, user]);
 }
 
-function releaseSandbox(auth, sandbox) {
-	return executeScript(auth, 'removeUser', [sandbox]);
+function releaseSandbox(auth, channel, sandbox) {
+	return executeScript(auth, 'removeUser', [channel, sandbox]);
 }
 
-function getCurrentUser(auth, sandbox) {
-	return executeScript(auth, 'getSandboxUser', [sandbox]);
+function getCurrentUser(auth, channel, sandbox) {
+	return executeScript(auth, 'getSandboxUser', [channel, sandbox]);
 }
 
 function executeScript(auth, funcName, args) {
