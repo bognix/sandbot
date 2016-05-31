@@ -160,9 +160,9 @@ function releaseSandbox(message) {
 
                 return sheet.getCurrentUser(authData, message.channel, sandboxName);
             })
-            .then(function (user) {
-                if (user !== message.user) {
-                    response = ':pirate: take over!!! @' + user + ', ' + message.user + ' is releasing your sandbox!';
+            .then(function (data) {
+                if (data.result && data.result !== message.user) {
+                    response = ':pirate: take over!!! <@' + data.result + '>, <@' + message.user + '> is releasing your sandbox!:pirate:';
                 }
 
                 return sheet.releaseSandbox(authorization, message.channel, sandboxName, message.user);
