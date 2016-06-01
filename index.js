@@ -54,13 +54,12 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
     }
 
     if (message.text && RELEASE_PATTERN.test(message.text)) {
-        var msg = '<@' + message.user + '> ';
-
         releaseSandbox(message)
             .then(function (data) {
-                msg += ':+1:';
                 if (data.response) {
                     rtm.sendMessage(data.response, message.channel);
+                } else {
+                    var msg = '<@' + message.user + '> :+1:';
                 }
                 rtm.sendMessage(msg, message.channel)
             })
