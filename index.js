@@ -8,8 +8,8 @@ var RtmClient = require('@slack/client').RtmClient,
 
     RTM_EVENTS = require('@slack/client').RTM_EVENTS,
     STATUS_PATTERN = /sandbot status/i,
-    BOOK_PATTERN = /(biore|taking) sandbox-/i,
-    RELEASE_PATTERN = /(zwalniam|releasing) sandbox-/i,
+    BOOK_PATTERN = /(biore|taking) (sandbox|adeng)-/i,
+    RELEASE_PATTERN = /(zwalniam|releasing) (sandbox|adeng)-/i,
     PING_PATTERN = /sandbot (zyjesz|ping)\?/i;
 
 rtm.start();
