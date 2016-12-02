@@ -128,8 +128,9 @@ function getUserNameById(userId) {
 
 function getSandboxNameFromMessage(message) {
     var text = message.text,
-        match = text.match(/(sandbox-.*)/i);
+        match = text.match(/((sandbox|adeng)-.*)/i);
 
+    console.log(match);
     if (match) {
         return match[0].replace('-', '_');
     }
