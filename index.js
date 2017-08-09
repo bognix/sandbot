@@ -34,36 +34,29 @@ db.serialize(function() {
     db.run("INSERT INTO sandboxes VALUES('sandbox-qa04', 'C053B0DC2', '');");
     db.run("INSERT INTO sandboxes VALUES('sandbox-mercury', 'C053B0DC2', '');");
     db.run("INSERT INTO sandboxes VALUES('sandbox-content', 'C053B0DC2', '');");
-
-    //db.each("SELECT sandbox, team, owner FROM sandboxes", function(err, row) {
-    //    console.log(row.team + "> " + row.sandbox + ": " + row.owner);
-    //});
 });
-
-db.close();
 
 rtm.start();
 
 rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 
-    //if (message.text && STATUS_PATTERN.test(message.text)) {
-    //
-    //    getStatus(message.channel).then(function (data) {
-    //        var promises = [];
-    //
-    //        Object.keys(data.result).forEach(function (key) {
-    //            promises.push(parseSandboxStatus(key, data.result[key]));
-    //        });
-    //
-    //        Promise.all(promises).then(function (data) {
-    //            var parsedMsg = '```';
-    //            data.forEach(function (item) {
-    //                parsedMsg += item[0] + ': ' + item[1] + '\n';
-    //            });
-    //            rtm.sendMessage(parsedMsg + '```', message.channel);
-    //        })
-    //    })
-    //}
+    if (message.text && STATUS_PATTERN.test(message.text)) {
+        getStatus(message.channel).then(function (data) {
+            var promises = [];
+            
+            Object.keys(data.result).forEach(function (key) {
+                promises.push(parseSandboxStatus(key, data.result[key]));
+            });
+
+            Promise.all(promises).then(function (data) {
+                var parsedMsg = '```';
+                data.forEach(function (item) {
+                    parsedMsg += item[0] + ': ' + item[1] + '\n';
+                });
+                rtm.sendMessage(parsedMsg + '```', message.channel);
+            })
+        })
+    }
     //
     //if (message.text && BOOK_PATTERN.test(message.text)) {
     //    var sandboxName = getSandboxNameFromMessage(message),
@@ -103,13 +96,27 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 
 function getStatus(channel) {
     return new Promise(function (resolve, reject) {
-        auth
-            .then(function (authData) {
-                return sheet.getStatus(authData, channel);
-            })
-            .then(function (data) {
-                resolve(data)
-            });
+        db.all(
+            "SELECT sandbox, owner FROM sandboxes WHERE team = $teamChannel",
+            {$teamChannel: channel},
+            function(err, rows) {
+                if(err) {
+                    reject(err);
+                }
+
+                var result = {};
+
+                rows.forEach(function(row) {
+                    if (row.sandbox) {
+                        result[row.sandbox] = row.owner;
+                    } else {
+                        console.log('Invalid row.');
+                    }
+                });
+
+                resolve({result: result});
+            }
+        );
     });
 }
 
