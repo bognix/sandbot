@@ -62,10 +62,10 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
         var sandboxName = getSandboxNameFromMessage(message),
             msg = '<@' + message.user + '> ';
 
-        getPreviousUser(message.channel, sandboxName)
-            .then(function (previousUser) {
-                if (previousUser.result) {
-                    msg += ':-1: - <@' + previousUser.result + '> is using it';
+        getSandboxOwner(message.channel, sandboxName)
+            .then(function (sandboxOwner) {
+                if (sandboxOwner.result) {
+                    msg += ':-1: - <@' + sandboxOwner.result + '> is using it';
                     rtm.sendMessage(msg, message.channel)
                 } else {
                     bookSandbox(message)
@@ -76,18 +76,18 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
                 }
             });
     }
-    //
-    //if (message.text && RELEASE_PATTERN.test(message.text)) {
-    //    releaseSandbox(message)
-    //        .then(function (data) {
-    //            if (data.response) {
-    //                rtm.sendMessage(data.response, message.channel);
-    //            } else {
-    //                var msg = '<@' + message.user + '> :+1:';
-    //            }
-    //            rtm.sendMessage(msg, message.channel)
-    //        })
-    //}
+
+    if (message.text && RELEASE_PATTERN.test(message.text)) {
+        releaseSandbox(message)
+            .then(function (data) {
+                if (data.response) {
+                    rtm.sendMessage(data.response, message.channel);
+                } else {
+                    var msg = '<@' + message.user + '> :+1:';
+                }
+                rtm.sendMessage(msg, message.channel);
+            })
+    }
 
     if (message.text && PING_PATTERN.test(message.text)) {
         rtm.sendMessage('zyje :+1:', message.channel);
@@ -120,7 +120,7 @@ function getStatus(channel) {
     });
 }
 
-function getPreviousUser(channel, sandboxName) {
+function getSandboxOwner(channel, sandboxName) {
     return new Promise(function (resolve, reject) {
         db.get(
             "SELECT owner FROM sandboxes WHERE team = $teamChannel AND sandbox = $sandboxName",
@@ -176,9 +176,7 @@ function getSandboxNameFromMessage(message) {
     var text = message.text,
         match = text.match(/((sandbox|adeng)-.*)/i);
 
-    console.log(match);
     if (match) {
-        //return match[0].replace('-', '_');
         return match[0];
     }
 }
@@ -197,28 +195,36 @@ function parseSandboxStatus(key, value) {
 }
 
 function releaseSandbox(message) {
-    var authorization, response, sandboxName;
+    var sandboxName, response;
 
     return new Promise(function (resolve, reject) {
-        auth
-            .then(function (authData) {
-                authorization = authData;
-                sandboxName = getSandboxNameFromMessage(message);
+        sandboxName = getSandboxNameFromMessage(message);
 
-                return sheet.getCurrentUser(authData, message.channel, sandboxName);
-            })
-            .then(function (data) {
-                if (data.result && data.result !== message.user) {
-                    response = ':pirate: take over!!! <@' + data.result + '>, <@' + message.user + '> is releasing your sandbox!:pirate:';
+        return getSandboxOwner(message.channel, sandboxName)
+            .then(function (sandboxOwner) {
+                if(sandboxOwner.result && sandboxOwner.result !== message.user) {
+                    response = ':pirate: take over!!! <@' + sandboxOwner + '>, <@' + message.user + '> is releasing your sandbox! :pirate:';
+
+                    return resolve({
+                        response: response,
+                        data: {}
+                    });
+                } else {
+                    db.run(
+                        "UPDATE sandboxes SET owner = '' WHERE team = $teamChannel AND sandbox = $sandboxName",
+                        {$teamChannel: message.channel, $sandboxName: sandboxName},
+                        function(err) {
+                            if(err) {
+                                reject(err);
+                            }
+
+                            return resolve({
+                                response: response,
+                                data: {}
+                            });
+                        }
+                    );
                 }
-
-                return sheet.releaseSandbox(authorization, message.channel, sandboxName, message.user);
-            })
-            .then(function (data) {
-                resolve({
-                    response: response,
-                    data: data
-                });
             });
     })
 }
