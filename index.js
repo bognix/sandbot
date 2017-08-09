@@ -19,12 +19,12 @@ db.serialize(function() {
     db.run("CREATE TABLE IF NOT EXISTS sandboxes(sandbox TEXT PRIMARY KEY ASC, team TEXT, owner TEXT);");
 
     // Ad Engineering = G0GV00TC4
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng01', 'G0GV00TC4', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng02', 'G0GV00TC4', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng03', 'G0GV00TC4', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng04', 'G0GV00TC4', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng05', 'G0GV00TC4', '');");
-    db.run("INSERT INTO sandboxes VALUES('adeng-fandom', 'G0GV00TC4', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng01', 'G0GV00TC4', 'U02Q062Q7');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng02', 'G0GV00TC4', 'U02Q062Q7');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng03', 'G0GV00TC4', 'U02Q062Q7');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng04', 'G0GV00TC4', 'U02Q062Q7');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng05', 'G0GV00TC4', 'U02Q062Q7');");
+    db.run("INSERT INTO sandboxes VALUES('adeng-fandom', 'G0GV00TC4', 'U02Q062Q7');");
 
     // X-Wing = C053B0DC2
     db.run("INSERT INTO sandboxes VALUES('sanbox-dedicated', 'C053B0DC2', '');");
@@ -43,7 +43,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
     if (message.text && STATUS_PATTERN.test(message.text)) {
         getStatus(message.channel).then(function (data) {
             var promises = [];
-            
+
             Object.keys(data.result).forEach(function (key) {
                 promises.push(parseSandboxStatus(key, data.result[key]));
             });
@@ -57,25 +57,25 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
             })
         })
     }
-    //
-    //if (message.text && BOOK_PATTERN.test(message.text)) {
-    //    var sandboxName = getSandboxNameFromMessage(message),
-    //        msg = '<@' + message.user + '> ';
-    //
-    //    getPreviousUser(message.channel, sandboxName)
-    //        .then(function (previousUser) {
-    //            if (previousUser.result) {
-    //                msg += ':-1: - <@' + previousUser.result + '> is using it';
-    //                rtm.sendMessage(msg, message.channel)
-    //            } else {
-    //                bookSandbox(message)
-    //                    .then(function () {
-    //                        msg += ':+1:';
-    //                        rtm.sendMessage(msg, message.channel)
-    //                    })
-    //            }
-    //        });
-    //}
+
+    if (message.text && BOOK_PATTERN.test(message.text)) {
+        var sandboxName = getSandboxNameFromMessage(message),
+            msg = '<@' + message.user + '> ';
+
+        getPreviousUser(message.channel, sandboxName)
+            .then(function (previousUser) {
+                if (previousUser.result) {
+                    msg += ':-1: - <@' + previousUser.result + '> is using it';
+                    rtm.sendMessage(msg, message.channel)
+                } else {
+                    bookSandbox(message)
+                        .then(function () {
+                            msg += ':+1:';
+                            rtm.sendMessage(msg, message.channel)
+                        })
+                }
+            });
+    }
     //
     //if (message.text && RELEASE_PATTERN.test(message.text)) {
     //    releaseSandbox(message)
@@ -122,13 +122,17 @@ function getStatus(channel) {
 
 function getPreviousUser(channel, sandboxName) {
     return new Promise(function (resolve, reject) {
-        auth
-            .then(function (authData) {
-                return sheet.getCurrentUser(authData, channel, sandboxName);
-            })
-            .then(function (data) {
-                resolve(data);
-            })
+        db.get(
+            "SELECT owner FROM sandboxes WHERE team = $teamChannel AND sandbox = $sandboxName",
+            {$teamChannel: channel, $sandboxName: sandboxName},
+            function(err, row) {
+                if(err) {
+                    reject(err);
+                }
+
+                return resolve({result: row.owner});
+            }
+        );
     })
 }
 
@@ -170,7 +174,8 @@ function getSandboxNameFromMessage(message) {
 
     console.log(match);
     if (match) {
-        return match[0].replace('-', '_');
+        //return match[0].replace('-', '_');
+        return match[0];
     }
 }
 
