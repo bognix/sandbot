@@ -1,22 +1,44 @@
 var RtmClient = require('@slack/client').RtmClient,
     token = process.env.SANDBOT_TOKEN || '',
-    sheet = require('./sheets'),
     Promise = require('bluebird'),
     request = require('request'),
     rtm = new RtmClient(token, {logLevel: 'error'}),
-    auth = sheet.authorize(),
+    sqlite3 = require('sqlite3').verbose(),
+    db = new sqlite3.Database(':memory:'),
 
     RTM_EVENTS = require('@slack/client').RTM_EVENTS,
     STATUS_PATTERN = /sandbot status/i,
     BOOK_PATTERN = /(biore|taking) (sandbox|adeng)-/i,
     RELEASE_PATTERN = /(zwalniam|releasing) (sandbox|adeng)-/i,
-    PING_PATTERN = /sandbot (zyjesz|ping)\?/i;
+    PING_PATTERN = /sandbot (zyjesz|ping)\?/i,
+    
+    XWING_CHANNEL_ID = 'C053B0DC2',
+    ADENG_CHANNEL_ID = 'G0GV00TC4';
+
+db.serialize(function() {
+    db.run("CREATE TABLE IF NOT EXISTS sandboxes(sandbox TEXT PRIMARY KEY ASC, team TEXT, owner TEXT);");
+
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng01', '" + ADENG_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng02', '" + ADENG_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng03', '" + ADENG_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng04', '" + ADENG_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng05', '" + ADENG_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('adeng-fandom', '" + ADENG_CHANNEL_ID + "', '');");
+
+    db.run("INSERT INTO sandboxes VALUES('sanbox-dedicated', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-xw1', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-xw2', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-so', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-qa04', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-mercury', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-content', '" + XWING_CHANNEL_ID + "', '');");
+});
 
 rtm.start();
 
 rtm.on(RTM_EVENTS.MESSAGE, function (message) {
-    if (message.text && STATUS_PATTERN.test(message.text)) {
 
+    if (message.text && STATUS_PATTERN.test(message.text)) {
         getStatus(message.channel).then(function (data) {
             var promises = [];
 
@@ -38,10 +60,10 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
         var sandboxName = getSandboxNameFromMessage(message),
             msg = '<@' + message.user + '> ';
 
-        getPreviousUser(message.channel, sandboxName)
-            .then(function (previousUser) {
-                if (previousUser.result) {
-                    msg += ':-1: - <@' + previousUser.result + '> is using it';
+        getSandboxOwner(message.channel, sandboxName)
+            .then(function (sandboxOwner) {
+                if (sandboxOwner.result) {
+                    msg += ':-1: - <@' + sandboxOwner.result + '> is using it';
                     rtm.sendMessage(msg, message.channel)
                 } else {
                     bookSandbox(message)
@@ -61,7 +83,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
                 } else {
                     var msg = '<@' + message.user + '> :+1:';
                 }
-                rtm.sendMessage(msg, message.channel)
+                rtm.sendMessage(msg, message.channel);
             })
     }
 
@@ -72,25 +94,43 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 
 function getStatus(channel) {
     return new Promise(function (resolve, reject) {
-        auth
-            .then(function (authData) {
-                return sheet.getStatus(authData, channel);
-            })
-            .then(function (data) {
-                resolve(data)
-            });
+        db.all(
+            "SELECT sandbox, owner FROM sandboxes WHERE team = $teamChannel",
+            {$teamChannel: channel},
+            function(err, rows) {
+                if(err) {
+                    reject(err);
+                }
+
+                var result = {};
+
+                rows.forEach(function(row) {
+                    if (row.sandbox) {
+                        result[row.sandbox] = row.owner;
+                    } else {
+                        console.log('Invalid row.');
+                    }
+                });
+
+                resolve({result: result});
+            }
+        );
     });
 }
 
-function getPreviousUser(channel, sandboxName) {
+function getSandboxOwner(channel, sandboxName) {
     return new Promise(function (resolve, reject) {
-        auth
-            .then(function (authData) {
-                return sheet.getCurrentUser(authData, channel, sandboxName);
-            })
-            .then(function (data) {
-                resolve(data);
-            })
+        db.get(
+            "SELECT owner FROM sandboxes WHERE team = $teamChannel AND sandbox = $sandboxName",
+            {$teamChannel: channel, $sandboxName: sandboxName},
+            function(err, row) {
+                if(err) {
+                    reject(err);
+                }
+
+                return resolve({result: row.owner});
+            }
+        );
     })
 }
 
@@ -98,13 +138,17 @@ function bookSandbox(message) {
     var sandboxName = getSandboxNameFromMessage(message);
 
     return new Promise(function (resolve, reject) {
-        auth
-            .then(function (authData) {
-                return sheet.bookSandbox(authData, message.channel, sandboxName, message.user);
-            })
-            .then(function (data) {
-                resolve(data)
-            })
+        db.run(
+            "UPDATE sandboxes SET owner = $userId WHERE team = $teamChannel AND sandbox = $sandboxName",
+            {$userId: message.user, $teamChannel: message.channel, $sandboxName: sandboxName},
+            function(err, row) {
+                if(err) {
+                    reject(err);
+                }
+
+                return resolve();
+            }
+        );
     });
 }
 
@@ -130,9 +174,8 @@ function getSandboxNameFromMessage(message) {
     var text = message.text,
         match = text.match(/((sandbox|adeng)-.*)/i);
 
-    console.log(match);
     if (match) {
-        return match[0].replace('-', '_');
+        return match[0];
     }
 }
 
@@ -150,28 +193,43 @@ function parseSandboxStatus(key, value) {
 }
 
 function releaseSandbox(message) {
-    var authorization, response, sandboxName;
+    var sandboxName, response;
 
     return new Promise(function (resolve, reject) {
-        auth
-            .then(function (authData) {
-                authorization = authData;
-                sandboxName = getSandboxNameFromMessage(message);
+        sandboxName = getSandboxNameFromMessage(message);
 
-                return sheet.getCurrentUser(authData, message.channel, sandboxName);
-            })
-            .then(function (data) {
-                if (data.result && data.result !== message.user) {
-                    response = ':pirate: take over!!! <@' + data.result + '>, <@' + message.user + '> is releasing your sandbox!:pirate:';
+        return getSandboxOwner(message.channel, sandboxName)
+            .then(function (sandboxOwner) {
+                if(sandboxOwner.result && sandboxOwner.result !== message.user) {
+                    response = ':pirate: take over!!! <@' + sandboxOwner + '>, <@' + message.user + '> is releasing your sandbox! :pirate:';
+
+                    return resolve({
+                        response: response,
+                        data: {}
+                    });
+                } else {
+                    db.run(
+                        "UPDATE sandboxes SET owner = '' WHERE team = $teamChannel AND sandbox = $sandboxName",
+                        {$teamChannel: message.channel, $sandboxName: sandboxName},
+                        function(err) {
+                            if(err) {
+                                reject(err);
+                            }
+
+                            return resolve({
+                                response: response,
+                                data: {}
+                            });
+                        }
+                    );
                 }
-
-                return sheet.releaseSandbox(authorization, message.channel, sandboxName, message.user);
-            })
-            .then(function (data) {
-                resolve({
-                    response: response,
-                    data: data
-                });
             });
     })
 }
+
+function exitHandler() {
+    db.close();
+}
+
+process.on('exit', exitHandler);
+process.on('SIGINT', exitHandler);
