@@ -1,11 +1,8 @@
 var RtmClient = require('@slack/client').RtmClient,
     token = process.env.SANDBOT_TOKEN || '',
-    //sheet = require('./sheets'),
     Promise = require('bluebird'),
     request = require('request'),
     rtm = new RtmClient(token, {logLevel: 'error'}),
-    //auth = sheet.authorize(),
-
     sqlite3 = require('sqlite3').verbose(),
     db = new sqlite3.Database(':memory:'),
 
@@ -13,27 +10,28 @@ var RtmClient = require('@slack/client').RtmClient,
     STATUS_PATTERN = /sandbot status/i,
     BOOK_PATTERN = /(biore|taking) (sandbox|adeng)-/i,
     RELEASE_PATTERN = /(zwalniam|releasing) (sandbox|adeng)-/i,
-    PING_PATTERN = /sandbot (zyjesz|ping)\?/i;
+    PING_PATTERN = /sandbot (zyjesz|ping)\?/i,
+    
+    XWING_CHANNEL_ID = 'C053B0DC2',
+    ADENG_CHANNEL_ID = 'G0GV00TC4';
 
 db.serialize(function() {
     db.run("CREATE TABLE IF NOT EXISTS sandboxes(sandbox TEXT PRIMARY KEY ASC, team TEXT, owner TEXT);");
 
-    // Ad Engineering = G0GV00TC4
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng01', 'G0GV00TC4', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng02', 'G0GV00TC4', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng03', 'G0GV00TC4', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng04', 'G0GV00TC4', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng05', 'G0GV00TC4', '');");
-    db.run("INSERT INTO sandboxes VALUES('adeng-fandom', 'G0GV00TC4', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng01', '" + ADENG_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng02', '" + ADENG_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng03', '" + ADENG_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng04', '" + ADENG_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng05', '" + ADENG_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('adeng-fandom', '" + ADENG_CHANNEL_ID + "', '');");
 
-    // X-Wing = C053B0DC2
-    db.run("INSERT INTO sandboxes VALUES('sanbox-dedicated', 'C053B0DC2', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-xw1', 'C053B0DC2', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-xw2', 'C053B0DC2', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-so', 'C053B0DC2', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-qa04', 'C053B0DC2', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-mercury', 'C053B0DC2', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-content', 'C053B0DC2', '');");
+    db.run("INSERT INTO sandboxes VALUES('sanbox-dedicated', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-xw1', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-xw2', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-so', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-qa04', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-mercury', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-content', '" + XWING_CHANNEL_ID + "', '');");
 });
 
 rtm.start();
@@ -228,3 +226,10 @@ function releaseSandbox(message) {
             });
     })
 }
+
+function exitHandler() {
+    db.close();
+}
+
+process.on('exit', exitHandler);
+process.on('SIGINT', exitHandler);
