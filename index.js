@@ -19,12 +19,12 @@ db.serialize(function() {
     db.run("CREATE TABLE IF NOT EXISTS sandboxes(sandbox TEXT PRIMARY KEY ASC, team TEXT, owner TEXT);");
 
     // Ad Engineering = G0GV00TC4
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng01', 'G0GV00TC4', 'U02Q062Q7');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng02', 'G0GV00TC4', 'U02Q062Q7');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng03', 'G0GV00TC4', 'U02Q062Q7');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng04', 'G0GV00TC4', 'U02Q062Q7');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng05', 'G0GV00TC4', 'U02Q062Q7');");
-    db.run("INSERT INTO sandboxes VALUES('adeng-fandom', 'G0GV00TC4', 'U02Q062Q7');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng01', 'G0GV00TC4', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng02', 'G0GV00TC4', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng03', 'G0GV00TC4', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng04', 'G0GV00TC4', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng05', 'G0GV00TC4', '');");
+    db.run("INSERT INTO sandboxes VALUES('adeng-fandom', 'G0GV00TC4', '');");
 
     // X-Wing = C053B0DC2
     db.run("INSERT INTO sandboxes VALUES('sanbox-dedicated', 'C053B0DC2', '');");
@@ -140,13 +140,17 @@ function bookSandbox(message) {
     var sandboxName = getSandboxNameFromMessage(message);
 
     return new Promise(function (resolve, reject) {
-        auth
-            .then(function (authData) {
-                return sheet.bookSandbox(authData, message.channel, sandboxName, message.user);
-            })
-            .then(function (data) {
-                resolve(data)
-            })
+        db.run(
+            "UPDATE sandboxes SET owner = $userId WHERE team = $teamChannel AND sandbox = $sandboxName",
+            {$userId: message.user, $teamChannel: message.channel, $sandboxName: sandboxName},
+            function(err, row) {
+                if(err) {
+                    reject(err);
+                }
+
+                return resolve();
+            }
+        );
     });
 }
 
