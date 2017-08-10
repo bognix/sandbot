@@ -5,19 +5,24 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "bot": "./sandbot-setup.sh && node index.js"
+    "bot": "node index.js"
   },
   "keywords": [
     "slackbot",
     "sandbox"
   ],
   "author": "Bogna \"bognix\" Knychala",
+  "contributors": [
+    {
+      "name": "Andrzej \"nAndy\" Łukaszewski",
+      "email": "nandy@wikia-inc.com",
+      "url": "https://github.com/nandy-andy"
+    }
+  ],
   "license": "MIT",
   "dependencies": {
     "@slack/client": "^3.5.3",
     "bluebird": "^3.3.4",
-    "google-auth-library": "^0.9.7",
-    "googleapis": "^3.1.0",
-    "request": "^2.69.0"
+    "sqlite3": "^3.1.9"
   }
 }
