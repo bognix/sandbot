@@ -15,6 +15,8 @@ var RtmClient = require('@slack/client').RtmClient,
     XWING_CHANNEL_ID = 'C053B0DC2',
     ADENG_CHANNEL_ID = 'G0GV00TC4';
 
+console.log("Sandbot activated.");
+
 db.serialize(function() {
     db.run("CREATE TABLE IF NOT EXISTS sandboxes(sandbox TEXT PRIMARY KEY ASC, team TEXT, owner TEXT);");
 
@@ -32,13 +34,17 @@ db.serialize(function() {
     db.run("INSERT INTO sandboxes VALUES('sandbox-qa04', '" + XWING_CHANNEL_ID + "', '');");
     db.run("INSERT INTO sandboxes VALUES('sandbox-mercury', '" + XWING_CHANNEL_ID + "', '');");
     db.run("INSERT INTO sandboxes VALUES('sandbox-content', '" + XWING_CHANNEL_ID + "', '');");
+
+    console.log("Database initialized.");
 });
 
 rtm.start();
+console.log("Slack RTM started.");
 
 rtm.on(RTM_EVENTS.MESSAGE, function (message) {
-
     if (message.text && STATUS_PATTERN.test(message.text)) {
+        console.log("Checking status...");
+
         getStatus(message.channel).then(function (data) {
             var promises = [];
 
@@ -88,6 +94,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
     }
 
     if (message.text && PING_PATTERN.test(message.text)) {
+        console.log("Pong.");
         rtm.sendMessage('zyje :+1:', message.channel);
     }
 });
@@ -201,7 +208,7 @@ function releaseSandbox(message) {
         return getSandboxOwner(message.channel, sandboxName)
             .then(function (sandboxOwner) {
                 if(sandboxOwner.result && sandboxOwner.result !== message.user) {
-                    response = ':pirate: take over!!! <@' + sandboxOwner + '>, <@' + message.user + '> is releasing your sandbox! :pirate:';
+                    response = ':pirate: take over!!! <@' + sandboxOwner.result + '>, <@' + message.user + '> is releasing your sandbox! :pirate:';
 
                     return resolve({
                         response: response,
@@ -228,6 +235,7 @@ function releaseSandbox(message) {
 }
 
 function exitHandler() {
+    console.log("Closing connection to database.");
     db.close();
 }
 
