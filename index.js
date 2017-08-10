@@ -201,7 +201,7 @@ function releaseSandbox(message) {
         return getSandboxOwner(message.channel, sandboxName)
             .then(function (sandboxOwner) {
                 if(sandboxOwner.result && sandboxOwner.result !== message.user) {
-                    response = ':pirate: take over!!! <@' + sandboxOwner + '>, <@' + message.user + '> is releasing your sandbox! :pirate:';
+                    response = ':pirate: take over!!! <@' + sandboxOwner.result + '>, <@' + message.user + '> is releasing your sandbox! :pirate:';
 
                     return resolve({
                         response: response,
