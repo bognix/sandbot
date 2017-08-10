@@ -144,6 +144,7 @@ function getSandboxOwner(channel, sandboxName) {
 function bookSandbox(message) {
     var sandboxName = getSandboxNameFromMessage(message);
 
+    console.log('Booking', sandboxName, 'for', message.user, 'on', message.channel);
     return new Promise(function (resolve, reject) {
         db.run(
             "UPDATE sandboxes SET owner = $userId WHERE team = $teamChannel AND sandbox = $sandboxName",
@@ -199,6 +200,22 @@ function parseSandboxStatus(key, value) {
     }
 }
 
+function updateDbWithRelease(sandboxName, channel) {
+    return new Promise(function (resolve, reject) {
+        db.run(
+            "UPDATE sandboxes SET owner = '' WHERE team = $teamChannel AND sandbox = $sandboxName",
+            {$teamChannel: channel, $sandboxName: sandboxName},
+            function (err) {
+                if (err) {
+                    reject(err);
+                }
+
+                resolve();
+            }
+        );
+    });
+}
+
 function releaseSandbox(message) {
     var sandboxName, response;
 
@@ -210,25 +227,20 @@ function releaseSandbox(message) {
                 if(sandboxOwner.result && sandboxOwner.result !== message.user) {
                     response = ':pirate: take over!!! <@' + sandboxOwner.result + '>, <@' + message.user + '> is releasing your sandbox! :pirate:';
 
-                    return resolve({
-                        response: response,
-                        data: {}
-                    });
-                } else {
-                    db.run(
-                        "UPDATE sandboxes SET owner = '' WHERE team = $teamChannel AND sandbox = $sandboxName",
-                        {$teamChannel: message.channel, $sandboxName: sandboxName},
-                        function(err) {
-                            if(err) {
-                                reject(err);
-                            }
-
-                            return resolve({
+                    return updateDbWithRelease(sandboxName, message.channel)
+                        .then(function () {
+                            resolve({
                                 response: response,
                                 data: {}
                             });
-                        }
-                    );
+                        });
+                } else {
+                    return updateDbWithRelease(sandboxName, message.channel)
+                        .then(function () {
+                            resolve({
+                                data: {}
+                            });
+                        });
                 }
             });
     })
