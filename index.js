@@ -13,7 +13,8 @@ var RtmClient = require('@slack/client').RtmClient,
     PING_PATTERN = /sandbot (zyjesz|ping)\?/i,
     
     XWING_CHANNEL_ID = 'C053B0DC2',
-    ADENG_CHANNEL_ID = 'G0GV00TC4';
+    ADENG_CHANNEL_ID = 'G0GV00TC4',
+    IRIS_CHANNEL_ID = 'G86P5KR7G';
 
 console.log("Sandbot activated.");
 
@@ -34,6 +35,10 @@ db.serialize(function() {
     db.run("INSERT INTO sandboxes VALUES('sandbox-qa04', '" + XWING_CHANNEL_ID + "', '');");
     db.run("INSERT INTO sandboxes VALUES('sandbox-mercury', '" + XWING_CHANNEL_ID + "', '');");
     db.run("INSERT INTO sandboxes VALUES('sandbox-content', '" + XWING_CHANNEL_ID + "', '');");
+    
+    db.run("INSERT INTO sandboxes VALUES('sandbox-qa01', '" + IRIS_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-qa02', '" + IRIS_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-qa03', '" + IRIS_CHANNEL_ID + "', '');");
 
     console.log("Database initialized.");
 });
