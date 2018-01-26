@@ -3,46 +3,15 @@ var RtmClient = require('@slack/client').RtmClient,
     Promise = require('bluebird'),
     request = require('request'),
     rtm = new RtmClient(token, {logLevel: 'error'}),
-    sqlite3 = require('sqlite3').verbose(),
-    db = new sqlite3.Database(':memory:'),
+    db = require('./db/connection');
 
     RTM_EVENTS = require('@slack/client').RTM_EVENTS,
     STATUS_PATTERN = /sandbot status/i,
     BOOK_PATTERN = /(biore|taking) (sandbox|adeng)-/i,
     RELEASE_PATTERN = /(zwalniam|releasing) (sandbox|adeng)-/i,
-    PING_PATTERN = /sandbot (zyjesz|ping)\?/i,
-    
-    XWING_CHANNEL_ID = 'C053B0DC2',
-    ADENG_CHANNEL_ID = 'G0GV00TC4',
-    IRIS_CHANNEL_ID = 'G86P5KR7G';
+    PING_PATTERN = /sandbot (zyjesz|ping)\?/i;
 
 console.log("Sandbot activated.");
-
-db.serialize(function() {
-    db.run("CREATE TABLE IF NOT EXISTS sandboxes(sandbox TEXT PRIMARY KEY ASC, team TEXT, owner TEXT);");
-
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng01', '" + ADENG_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng02', '" + ADENG_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng03', '" + ADENG_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng04', '" + ADENG_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-adeng05', '" + ADENG_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('adeng-fandom', '" + ADENG_CHANNEL_ID + "', '');");
-
-    db.run("INSERT INTO sandboxes VALUES('sanbox-dedicated', '" + XWING_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-xw1', '" + XWING_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-xw2', '" + XWING_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-so', '" + XWING_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-qa04', '" + XWING_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-mercury', '" + XWING_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-content', '" + XWING_CHANNEL_ID + "', '');");
-    
-    db.run("INSERT INTO sandboxes VALUES('sandbox-qa01', '" + IRIS_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-qa02', '" + IRIS_CHANNEL_ID + "', '');");
-    db.run("INSERT INTO sandboxes VALUES('sandbox-qa03', '" + IRIS_CHANNEL_ID + "', '');");
-
-    console.log("Database initialized.");
-});
-
 rtm.start();
 console.log("Slack RTM started.");
 
@@ -100,7 +69,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function (message) {
 
     if (message.text && PING_PATTERN.test(message.text)) {
         console.log("Pong.");
-        rtm.sendMessage('zyje :+1:', message.channel);
+        rtm.sendMessage('no ba! zyje, ziom! :+1:', message.channel);
     }
 });
 
