@@ -28,7 +28,7 @@ db.serialize(function() {
     db.run("INSERT INTO sandboxes VALUES('sandbox-adeng05', '" + ADENG_CHANNEL_ID + "', '');");
     db.run("INSERT INTO sandboxes VALUES('adeng-fandom', '" + ADENG_CHANNEL_ID + "', '');");
 
-    db.run("INSERT INTO sandboxes VALUES('sanbox-dedicated', '" + XWING_CHANNEL_ID + "', '');");
+    db.run("INSERT INTO sandboxes VALUES('sandbox-dedicated', '" + XWING_CHANNEL_ID + "', '');");
     db.run("INSERT INTO sandboxes VALUES('sandbox-xw1', '" + XWING_CHANNEL_ID + "', '');");
     db.run("INSERT INTO sandboxes VALUES('sandbox-xw2', '" + XWING_CHANNEL_ID + "', '');");
     db.run("INSERT INTO sandboxes VALUES('sandbox-so', '" + XWING_CHANNEL_ID + "', '');");
