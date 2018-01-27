@@ -6,7 +6,7 @@ const RtmClient = require('@slack/client').RtmClient,
 	BOOK = require('./book'),
 	RELEASE = require('./release'),
 	PING = require('./ping'),
-	JOKE = require('./joke');
+	JOKE = require('./joke'),
 
     RTM_EVENTS = require('@slack/client').RTM_EVENTS,
     ACTIONS = [
