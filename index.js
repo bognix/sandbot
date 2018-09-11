@@ -1,39 +1,38 @@
-const RtmClient = require('@slack/client').RtmClient,
-    token = process.env.SANDBOT_TOKEN || '',
-    rtm = new RtmClient(token, {logLevel: 'error'}),
-    db = require('./db/connection'),
-	STATUS = require('./status'),
-	BOOK = require('./book'),
-	RELEASE = require('./release'),
-	PING = require('./ping'),
-	JOKE = require('./joke'),
+const { RTMClient } = require('@slack/client');
+const db = require('./db/connection');
+const STATUS = require('./status');
+const BOOK = require('./book');
+const RELEASE = require('./release');
+const PING = require('./ping');
+const JOKE = require('./joke');
 
-    RTM_EVENTS = require('@slack/client').RTM_EVENTS,
-    ACTIONS = [
-		STATUS,
-        BOOK,
-		RELEASE,
-		PING,
-        JOKE
-    ];
+const token = process.env.SANDBOT_TOKEN || '';
+const rtm = new RTMClient(token, { logLevel: 'error' });
+const ACTIONS = [
+  STATUS,
+  BOOK,
+  RELEASE,
+  PING,
+  JOKE,
+];
 
-console.log("Sandbot activated.");
+console.log('Sandbot activated.');
 rtm.start();
-console.log("Slack RTM started.");
+console.log('Slack RTM started.');
 
-rtm.on(RTM_EVENTS.MESSAGE, function (message) {
-    if(message.text) {
-		ACTIONS.forEach(function (item) {
-			if(item.pattern.test(message.text)) {
-                item.action(rtm, message);
-			}
-		});
-    }
+rtm.on('message', (message) => {
+  if (message.text) {
+    ACTIONS.forEach((item) => {
+      if (item.pattern.test(message.text)) {
+        item.action(rtm, message);
+      }
+    });
+  }
 });
 
 function exitHandler() {
-    console.log("Closing connection to database.");
-    db.close();
+  console.log('Closing connection to database.');
+  db.close();
 }
 
 process.on('exit', exitHandler);

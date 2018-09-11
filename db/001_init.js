@@ -1,11 +1,10 @@
-const db = require('./connection'),
-	channels = require('../channels');
+const db = require('./connection');
 
-db.serialize(function() {
-	db.run("DROP TABLE IF EXISTS sandboxes;");
-	db.run("CREATE TABLE sandboxes(sandbox TEXT PRIMARY KEY ASC, team TEXT, owner TEXT);");
+db.serialize(() => {
+  db.run('DROP TABLE IF EXISTS sandboxes;');
+  db.run('CREATE TABLE sandboxes(sandbox TEXT PRIMARY KEY ASC, team TEXT, owner TEXT);');
 
-	console.log("Database initialized.");
+  console.log('Database initialized.');
 
-	db.close();
+  db.close();
 });
