@@ -1,29 +1,29 @@
 const db = require('./db/connection');
 
 module.exports = {
-	getSandboxNameFromMessage: function (message) {
-		var text = message.text,
-			match = text.match(/((sandbox|adeng)-.*)/i);
+  getSandboxNameFromMessage({ text }) {
+    const match = text.match(/((sandbox|adeng)-.*)/i);
 
-		if (match) {
-			return match[0];
-		}
-	},
+    if (match) {
+      return match[0];
+    }
 
-	getSandboxOwner: function (channel, sandboxName) {
-		return new Promise(function (resolve, reject) {
-			db.get(
-				"SELECT owner FROM sandboxes WHERE team = $teamChannel AND sandbox = $sandboxName",
-				{ $teamChannel: channel, $sandboxName: sandboxName },
-				function (err, row) {
-					if (err || !row) {
-						reject(err || 'sandbox does not exist');
-						return;
-					}
+    return undefined;
+  },
 
-					return resolve({ result: row.owner });
-				}
-			);
-		})
-	}
+  getSandboxOwner(channel, sandboxName) {
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT owner FROM sandboxes WHERE team = $teamChannel AND sandbox = $sandboxName',
+        { $teamChannel: channel, $sandboxName: sandboxName },
+        (err, row) => {
+          if (err || !row) {
+            return reject(err || 'sandbox does not exist');
+          }
+
+          return resolve({ result: row.owner });
+        },
+      );
+    });
+  },
 };
