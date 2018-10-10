@@ -3,6 +3,12 @@ const request = require('request');
 const db = require('./db/connection');
 
 const token = process.env.SANDBOT_TOKEN || '';
+const k8sSandboxes = [
+  'sandbox-qa01',
+  'sandbox-qa02',
+  'sandbox-qa03',
+  'sandbox-qa04',
+];
 
 function getStatus(channel) {
   return new Promise(((resolve, reject) => {
@@ -18,7 +24,11 @@ function getStatus(channel) {
 
         rows.forEach((row) => {
           if (row.sandbox) {
-            result[row.sandbox] = row.owner;
+            if (k8sSandboxes.includes(row.sandbox)) {
+              result[row.sandbox] = `${row.owner} // k8s sandbox`;
+            } else {
+              result[row.sandbox] = row.owner;
+            }
           } else {
             console.log('Invalid row.');
           }
