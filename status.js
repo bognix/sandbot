@@ -85,7 +85,11 @@ module.exports = {
         let parsedMsg = '```';
 
         data.forEach((item) => {
-          parsedMsg += `${item[0]}: ${item[1]}\n`;
+          if (k8sSandboxes.includes(item[0])) {
+            parsedMsg += `[k8s] ${item[0]}: ${item[1]}\n`;
+          } else {
+            parsedMsg += `${item[0]}: ${item[1]}\n`;
+          }
         });
 
         rtm.sendMessage(`${parsedMsg}\`\`\``, message.channel);
