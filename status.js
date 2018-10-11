@@ -24,11 +24,7 @@ function getStatus(channel) {
 
         rows.forEach((row) => {
           if (row.sandbox) {
-            if (k8sSandboxes.includes(row.sandbox)) {
-              result[row.sandbox] = `${row.owner} // k8s sandbox`;
-            } else {
-              result[row.sandbox] = row.owner;
-            }
+            result[row.sandbox] = row.owner;
           } else {
             console.log('Invalid row.');
           }
